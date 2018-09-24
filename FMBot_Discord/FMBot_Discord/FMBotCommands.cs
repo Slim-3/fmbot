@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -667,6 +668,9 @@ namespace FMBot_Discord
 
                     await loadingmsg.DeleteAsync();
                     await Context.Channel.SendMessageAsync("", false, builder.Build());
+
+                    File.SetAttributes(GlobalVars.UsersFolder + DiscordUser.Id + "-chart.png", FileAttributes.Normal);
+                    File.Delete(GlobalVars.UsersFolder + DiscordUser.Id + "-chart.png");
                 }
             }
             catch (Exception e)
@@ -860,6 +864,9 @@ namespace FMBot_Discord
 
                     await loadingmsg.DeleteAsync();
                     await Context.Channel.SendMessageAsync("", false, builder.Build());
+
+                    File.SetAttributes(GlobalVars.UsersFolder + DiscordUser.Id + "-chart.png", FileAttributes.Normal);
+                    File.Delete(GlobalVars.UsersFolder + DiscordUser.Id + "-chart.png");
                 }
             }
             catch (Exception e)
