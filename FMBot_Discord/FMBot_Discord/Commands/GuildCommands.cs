@@ -69,8 +69,8 @@ namespace FMBot.Bot.Commands
             await guildService.ChangeGuildSettingAsync(Context.Guild, chartTimePeriodEnum, chartTypeEnum);
 
 
-            
-            await ReplyAsync("The .fmset default charttype for your server has been set to " + chartTypeEnum +  " with the time period " + chartTimePeriodEnum + ".");
+
+            await ReplyAsync("The .fmset default charttype for your server has been set to " + chartTypeEnum + " with the time period " + chartTimePeriodEnum + ".");
         }
 
         #endregion

@@ -528,7 +528,7 @@ namespace FMBot.Bot.Commands
 
                 userService.ResetChartTimer(userSettings);
 
-                await lastFMService.GenerateChartAsync(chart);
+                //await lastFMService.GenerateChartAsync(chart);
 
                 await SendChartMessage(chart);
 

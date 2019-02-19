@@ -4,8 +4,6 @@ using IF.Lastfm.Core.Api.Enums;
 using IF.Lastfm.Core.Api.Helpers;
 using IF.Lastfm.Core.Objects;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -170,7 +168,6 @@ namespace FMBot.Services
                             if (File.Exists(GlobalVars.CacheFolder + path))
                             {
                                 cover = new Bitmap(GlobalVars.CacheFolder + path);
-
                             }
                             else
                             {
@@ -226,19 +223,33 @@ namespace FMBot.Services
 
                         if (artistImage != null && artistImage.Large != null)
                         {
-                            string url = null;
+                            string url = artistImage.Large.AbsoluteUri.ToString();
+                            string path = Path.GetFileName(url);
 
-                            url = artistImage.Large.AbsoluteUri.ToString();
 
-
-                            WebRequest request = WebRequest.Create(url);
-                            using (WebResponse response = await request.GetResponseAsync())
+                            if (File.Exists(GlobalVars.CacheFolder + path))
                             {
-                                using (Stream responseStream = response.GetResponseStream())
+                                cover = new Bitmap(GlobalVars.CacheFolder + path);
+                            }
+                            else
+                            {
+                                WebRequest request = WebRequest.Create(url);
+                                using (WebResponse response = await request.GetResponseAsync())
                                 {
-                                    using (Bitmap bitmap = new Bitmap(responseStream))
+                                    using (Stream responseStream = response.GetResponseStream())
                                     {
+                                        Bitmap bitmap = new Bitmap(responseStream);
+
                                         cover = bitmap;
+                                        using (MemoryStream memory = new MemoryStream())
+                                        {
+                                            using (FileStream fs = new FileStream(GlobalVars.CacheFolder + path, FileMode.Create, FileAccess.ReadWrite))
+                                            {
+                                                bitmap.Save(memory, System.Drawing.Imaging.ImageFormat.Png);
+                                                byte[] bytes = memory.ToArray();
+                                                fs.Write(bytes, 0, bytes.Length);
+                                            }
+                                        }
 
                                     }
                                 }
@@ -266,23 +277,51 @@ namespace FMBot.Services
             }
             finally
             {
-                List<List<Bitmap>> ImageLists = GlobalVars.splitBitmapList(chart.images, chart.rows);
+                Bitmap finalImage;
 
-                List<Bitmap> BitmapList = new List<Bitmap>();
+                int width;
+                int height;
 
-                foreach (List<Bitmap> list in ImageLists.ToArray())
+                double root = Math.Sqrt(chart.images.Count);
+
+                width = (int)Math.Ceiling(root) * chart.images.FirstOrDefault().Width;
+                height = (int)Math.Ceiling(root) * chart.images.FirstOrDefault().Height;
+
+                //create a bitmap to hold the combined image
+                finalImage = new Bitmap(width, height);
+
+                //get a graphics object from the image so we can draw on it
+                using (Graphics g = Graphics.FromImage(finalImage))
                 {
-                    //combine them into one image
-                    Bitmap stitchedRow = GlobalVars.Combine(list);
-                    BitmapList.Add(stitchedRow);
+                    //set background color
+                    g.Clear(Color.Black);
+
+                    //go through each image and draw it on the final image
+                    int offset = 0;
+                    int heightOffset = 0;
+
+                    for (int i = 1; i < chart.images.Count + 1; i++)
+                    {
+                        g.DrawImage(chart.images[i - 1],
+                          new Rectangle(offset, heightOffset, chart.images[i -1].Width, chart.images[i -1].Height));
+
+                        offset += chart.images[i - 1].Width;
+
+                        // next row
+                        if ((i % root) == 0 && (i - 1) != 0)
+                        {
+                            offset = 0;
+                            heightOffset += chart.images[i - 1].Height;
+                        }
+                    }
                 }
 
                 lock (GlobalVars.charts.SyncRoot)
                 {
-                    GlobalVars.charts[GlobalVars.GetChartFileName(chart.DiscordUser.Id)] = GlobalVars.Combine(BitmapList, true);
+                    GlobalVars.charts[GlobalVars.GetChartFileName(chart.DiscordUser.Id)] = finalImage;
                 }
 
-                foreach (Bitmap image in BitmapList.ToArray())
+                foreach (Bitmap image in chart.images)
                 {
                     image.Dispose();
                 }

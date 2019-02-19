@@ -1,22 +1,12 @@
 ﻿using Discord;
-using Discord.Commands;
 using Discord.WebSocket;
-using IF.Lastfm.Core.Api.Enums;
-using IF.Lastfm.Core.Objects;
-using Microsoft.Win32.SafeHandles;
 using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
-using System.Linq;
 using System.Management;
-using System.Net;
-using System.Runtime.ConstrainedExecution;
-using System.Runtime.InteropServices;
-using System.Security.Permissions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -30,8 +20,7 @@ namespace FMBot.Bot
         {
             #region User Settings
 
-
-            public async static Task<IGuildUser> ConvertIDToGuildUser(IGuild guild, ulong id)
+            public static async Task<IGuildUser> ConvertIDToGuildUser(IGuild guild, ulong id)
             {
                 IReadOnlyCollection<IGuildUser> users = await guild.GetUsersAsync();
 
@@ -44,155 +33,6 @@ namespace FMBot.Bot
                 }
 
                 return null;
-            }
-
-            #endregion
-
-
-
-
-            #region Friend List Settings
-
-            public static bool FriendsExists(string id)
-            {
-                return File.Exists(GlobalVars.CacheFolder + id + "-friends.txt");
-            }
-
-            public static int AddFriendsEntry(string id, params string[] friendlist)
-            {
-                if (!FriendsExists(id))
-                {
-                    File.Create(GlobalVars.CacheFolder + id + "-friends.txt").Dispose();
-                    File.SetAttributes(GlobalVars.CacheFolder + id + "-friends.txt", FileAttributes.Normal);
-                }
-
-                string[] friends = File.ReadAllLines(GlobalVars.CacheFolder + id + "-friends.txt");
-
-                int listcount = friendlist.Count();
-
-                List<string> list = new List<string>(friends);
-
-                foreach (string friend in friendlist)
-                {
-                    if (!friends.Contains(friend))
-                    {
-                        list.Add(friend);
-                    }
-                    else
-                    {
-                        listcount = listcount - 1;
-                        continue;
-                    }
-                }
-
-                friends = list.ToArray();
-
-                File.WriteAllLines(GlobalVars.CacheFolder + id + "-friends.txt", friends);
-                File.SetAttributes(GlobalVars.CacheFolder + id + "-friends.txt", FileAttributes.Normal);
-
-                return listcount;
-            }
-
-            public static int RemoveFriendsEntry(string id, params string[] friendlist)
-            {
-                if (!FriendsExists(id))
-                {
-                    return 0;
-                }
-
-                string[] friends = File.ReadAllLines(GlobalVars.CacheFolder + id + "-friends.txt");
-                string[] friendsLower = friends.Select(s => s.ToLowerInvariant()).ToArray();
-
-                int listcount = friendlist.Count();
-
-                List<string> list = new List<string>(friends);
-
-
-                foreach (string friend in friendlist)
-                {
-                    if (friendsLower.Contains(friend.ToLower()))
-                    {
-                        list.RemoveAll(n => n.Equals(friend, StringComparison.OrdinalIgnoreCase));
-                    }
-                    else
-                    {
-                        listcount = listcount - 1;
-                        continue;
-                    }
-                }
-
-                friends = list.ToArray();
-
-                File.WriteAllLines(GlobalVars.CacheFolder + id + "-friends.txt", friends);
-                File.SetAttributes(GlobalVars.CacheFolder + id + "-friends.txt", FileAttributes.Normal);
-
-                return listcount;
-            }
-
-            public static string[] GetFriendsForID(string id)
-            {
-                string[] lines = File.ReadAllLines(GlobalVars.CacheFolder + id + "-friends.txt");
-                return lines;
-            }
-
-            #endregion
-
-            #region Global Settings
-
-            public static int GetIntForModeName(string mode)
-            {
-                if (mode.Equals("embedmini"))
-                {
-                    return 0;
-                }
-                else if (mode.Equals("embedfull"))
-                {
-                    return 1;
-                }
-                else if (mode.Equals("textfull"))
-                {
-                    return 2;
-                }
-                else if (mode.Equals("textmini"))
-                {
-                    return 3;
-                }
-                else if (mode.Equals("userdefined"))
-                {
-                    return 4;
-                }
-                else
-                {
-                    return 4;
-                }
-            }
-
-            public static string GetNameForModeInt(int mode, bool isservercmd = false)
-            {
-                if (mode == 0)
-                {
-                    return "embedmini";
-                }
-                else if (mode == 1)
-                {
-                    return "embedfull";
-                }
-                else if (mode == 2)
-                {
-                    return "textfull";
-                }
-                else if (mode == 3)
-                {
-                    return "textmini";
-                }
-                else if ((mode > 3 || mode < 0) && isservercmd == true)
-                {
-                    return "userdefined";
-                }
-                else
-                {
-                    return "NULL";
-                }
             }
 
             #endregion
@@ -428,7 +268,7 @@ namespace FMBot.Bot
             public static int CommandExecutions_DMs = 0;
             public static Hashtable charts = new Hashtable();
 
-            private static bool IsUserInDM = false;
+            private static readonly bool IsUserInDM = false;
 
             public static string GetChartFileName(ulong id)
             {
@@ -467,23 +307,6 @@ namespace FMBot.Bot
                 return Task.CompletedTask;
             }
 
-            public static string GetLine(string filePath, int line)
-            {
-                using (StreamReader sr = new StreamReader(filePath))
-                {
-                    for (int i = 1; i < line; i++)
-                    {
-                        sr.ReadLine();
-                    }
-
-                    return sr.ReadLine();
-                }
-            }
-
-            public static string MultiLine(params string[] args)
-            {
-                return string.Join(Environment.NewLine, args);
-            }
 
             public static Bitmap Combine(List<Bitmap> images, bool vertical = false)
             {
@@ -575,63 +398,9 @@ namespace FMBot.Bot
             }
 
 
-            public static async void CheckIfDMBool(ICommandContext Context)
-            {
-                IDMChannel dm = await Context.User.GetOrCreateDMChannelAsync();
-
-                if (dm == null)
-                {
-                    IsUserInDM = false;
-                }
-
-                if (Context.Channel.Name == dm.Name)
-                {
-                    IsUserInDM = true;
-                }
-                else
-                {
-                    IsUserInDM = false;
-                }
-            }
-
             public static bool GetDMBool()
             {
                 return IsUserInDM;
-            }
-
-            public static IUser CheckIfDM(IUser user, ICommandContext Context)
-            {
-                CheckIfDMBool(Context);
-
-                if (IsUserInDM)
-                {
-                    return user ?? Context.Message.Author;
-                }
-                else
-                {
-                    return (IGuildUser)user ?? (IGuildUser)Context.Message.Author;
-                }
-            }
-
-            public static string GetNameString(IUser DiscordUser, ICommandContext Context)
-            {
-                if (IsUserInDM)
-                {
-                    return DiscordUser.Username;
-                }
-                else
-                {
-                    IGuildUser GuildUser = (IGuildUser)DiscordUser;
-
-                    if (string.IsNullOrWhiteSpace(GuildUser.Nickname))
-                    {
-                        return GuildUser.Username;
-                    }
-                    else
-                    {
-                        return GuildUser.Nickname;
-                    }
-                }
             }
 
 
@@ -655,5 +424,5 @@ namespace FMBot.Bot
         #endregion
 
 
-     }
+    }
 }
